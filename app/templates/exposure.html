@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Exposure & SLA{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Exposure &amp; SLA</h1>
+<p class="sub">Every finding that is still open. Deadlines come from the database function <code>fn_sla_days</code>: Critical 7 days, High 30, Medium 60, Low 90, counted from first detection.</p></div>
+<span class="count">{{ rows|length }} findings</span></div>
+<div class="chips"><a class="{{ 'on' if not only }}" href="{{ url_for('exposure') }}">All open</a><a class="{{ 'on' if only }}" href="?breached=1">SLA breached only</a></div>
+<div class="tablewrap"><table><thead><tr><th>Asset</th><th>Dept</th><th>CVE</th><th>Severity</th><th>CVSS</th><th>First detected</th><th>Days open</th><th>SLA</th><th>Patch state</th></tr></thead>
+{% for r in rows %}<tr class="{{ 'breach' if r.sla_breached }}"><td><a href="{{ url_for('asset', aid=r.asset_id) }}">{{ r.asset_name }}</a></td><td>{{ r.owner_dept|show }}</td><td>{{ r.cve_id }}</td>
+<td>{{ r.severity|badge|safe }}</td><td>{{ r.cvss_score }}</td><td>{{ r.first_detected }}</td><td><b>{{ r.days_exposed }}</b></td>
+<td>{{ r.sla_days }}d {% if r.sla_breached %}<span class="pill crit">+{{ r.days_exposed - r.sla_days }}</span>{% endif %}</td><td>{{ r.patch_state|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="9" class="empty">Nothing open. 🎉</td></tr>{% endfor %}</table></div>
+{% endblock %}

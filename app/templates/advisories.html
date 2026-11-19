@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Advisories{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Advisories <span class="pill muted">MongoDB</span></h1>
+<p class="sub">One flexible document per CVE: mitigations, references, affected products, tags. Severity and open-exposure counts are joined in live from MySQL.</p></div>
+<span class="count">{{ docs|length }} documents</span></div>
+
+<form class="filters" method="get"><input name="q" value="{{ q }}" placeholder="Search CVE, title or summary…">
+  {% if tag %}<input type="hidden" name="tag" value="{{ tag }}">{% endif %}<button class="btn">Search</button></form>
+<div class="chips"><a href="{{ url_for('advisories', q=q) }}" class="{{ 'on' if not tag }}">all tags</a>
+{% for t in top_tags %}<a href="{{ url_for('advisories', tag=t._id, q=q) }}" class="{{ 'on' if tag == t._id }}">{{ t._id }} · {{ t.n }}</a>{% endfor %}</div>
+
+<div class="tablewrap"><table><thead><tr><th>CVE</th><th>Title</th><th>Severity</th><th>Exploited</th><th>Tags</th><th>Open on assets</th></tr></thead>
+{% for d in docs %}{% set m = meta.get(d.cve_id) %}
+<tr><td><a href="{{ url_for('advisory', cve=d.cve_id) }}">{{ d.cve_id }}</a></td><td>{{ d.title }}</td>
+<td>{% if m %}{{ m.severity|badge|safe }} {{ m.cvss_score }}{% else %}—{% endif %}</td>
+<td>{{ ('<span class="pill crit">in the wild</span>' if d.exploited_in_wild else '<span class="pill muted">no</span>')|safe }}</td>
+<td>{% for t in d.tags %}<span class="pill low">{{ t }}</span> {% endfor %}</td><td>{{ m.open_on if m else '—' }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No advisories. Run <code>python setup_mongo.py</code>.</td></tr>{% endfor %}</table></div>
+{% endblock %}

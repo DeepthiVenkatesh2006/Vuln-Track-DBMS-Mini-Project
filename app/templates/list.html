@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import field, cell %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+<div class="head">
+  <div><h1>{{ title }}</h1><p class="sub">{{ subtitle }}</p></div>
+  <span class="count">{{ rows|length }} rows</span>
+</div>
+
+{% if can(add_role|default('admin')) %}
+<details class="panel add" {{ 'open' if request.args.get('add') }}>
+  <summary class="btn primary">+ {{ add_label }}</summary>
+  <form method="post" class="grid">{{ csrf_input() }}
+    {% for x in fields %}{{ field(x) }}{% endfor %}
+    <div class="actions"><button class="btn primary">Save</button></div>
+  </form>
+</details>
+{% endif %}
+
+{% if q is defined %}
+<form class="filters" method="get"><input name="q" value="{{ q }}" placeholder="Search name, dept or IP…"><button class="btn">Search</button>
+  {% if q %}<a class="btn ghost" href="{{ request.path }}">Clear</a>{% endif %}</form>
+{% endif %}
+{% if sev_filter is defined %}
+<div class="chips">
+  <a class="{{ 'on' if not sev_filter }}" href="{{ request.path }}">All</a>
+  {% for s in ['Critical','High','Medium','Low'] %}<a class="{{ 'on' if sev_filter == s }}" href="?severity={{ s }}">{{ s }}</a>{% endfor %}
+</div>
+{% endif %}
+{% if status_filter is defined %}
+<form class="filters" method="get">
+  <select name="asset" onchange="this.form.submit()"><option value="">All assets</option>
+    {% for v, l in asset_opts %}<option value="{{ v }}" {{ 'selected' if asset_filter|string == v|string }}>{{ l }}</option>{% endfor %}</select>
+  <select name="status" onchange="this.form.submit()"><option value="">All results</option>
+    {% for s in ['Open','Resolved','False Positive'] %}<option {{ 'selected' if status_filter == s }}>{{ s }}</option>{% endfor %}</select>
+</form>
+{% endif %}
+
+<div class="tablewrap"><table>
+  <thead><tr>{% for c in cols %}<th>{{ c[1] }}</th>{% endfor %}<th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      {% for c in cols %}<td>{{ cell(r, c) }}</td>{% endfor %}
+      <td class="rowact">
+        {% if apply_action and r.patch_status != 'Applied' and can('analyst') %}
+          <form method="post" action="{{ url_for(apply_action) }}">{{ csrf_input() }}<input type="hidden" name="asset_id" value="{{ r.asset_id }}"><input type="hidden" name="patch_id" value="{{ r.patch_id }}"><button class="btn small ok">Mark applied</button></form>
+        {% endif %}
+        {% if edit and can('admin') %}<a class="btn small" href="{{ row_url(edit, r[pk]) }}">Edit</a>{% endif %}
+        {% if delete and can('admin') %}
+          <form method="post" action="{{ row_url(delete, r[pk]) if pk else url_for(delete) }}" onsubmit="return confirm('Delete this row? This cannot be undone.')">{{ csrf_input() }}
+            {% for k in composite or [] %}<input type="hidden" name="{{ k }}" value="{{ r[k] }}">{% endfor %}
+            <button class="btn small danger">Delete</button></form>
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}<tr><td colspan="{{ cols|length + 1 }}" class="empty">Nothing here yet.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

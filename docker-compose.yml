@@ -1,0 +1,9 @@
+# Optional: run MongoDB without installing it.   docker compose up -d
+services:
+  mongo:
+    image: mongo:7
+    container_name: vulntrack-mongo
+    ports: ["27017:27017"]
+    volumes: ["vulntrack_mongo:/data/db"]
+volumes:
+  vulntrack_mongo:

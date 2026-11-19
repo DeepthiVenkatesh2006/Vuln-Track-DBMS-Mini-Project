@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Dashboard</h1><p class="sub">Where the organisation stands right now: what is exposed, what is overdue, what is being fixed.</p></div></div>
+
+<section class="kpis">
+  <div class="kpi"><b>{{ kpi.assets }}</b><span>Assets tracked</span></div>
+  <div class="kpi"><b>{{ kpi.open_findings }}</b><span>Open findings</span></div>
+  <div class="kpi crit"><b>{{ kpi.critical_open }}</b><span>Critical open</span></div>
+  <div class="kpi crit"><b>{{ kpi.sla_breaches|int }}</b><span>SLA breaches</span></div>
+  <div class="kpi"><b>{{ kpi.compliance|int }}%</b><span>Patches applied</span></div>
+  <div class="kpi"><b>{{ kpi.unscanned }}</b><span>Never scanned</span></div>
+</section>
+
+<div class="cols">
+  <section class="panel">
+    <h2>Open findings by severity</h2>
+    {% for s, n in sev_rows %}
+    <div class="bar"><span class="lbl">{{ s }}</span>
+      <span class="track"><i class="fill {{ {'Critical':'crit','High':'high','Medium':'med','Low':'low'}[s] }}" style="width: {{ (n / sev_max * 100)|round }}%"></i></span>
+      <span class="num">{{ n }}</span></div>
+    {% endfor %}
+    <h2 class="gap">By department</h2>
+    <table class="mini"><thead><tr><th>Department</th><th>Open</th><th>Critical</th><th>SLA breaches</th></tr></thead>
+    {% for d in depts %}<tr><td>{{ d.owner_dept|show }}</td><td>{{ d.open_findings }}</td><td>{{ d.critical|int }}</td><td>{{ d.sla_breaches|int }}</td></tr>{% endfor %}</table>
+  </section>
+
+  <section class="panel">
+    <h2>Riskiest assets</h2>
+    <table class="mini"><thead><tr><th>Asset</th><th>Open</th><th>Critical</th><th>Risk</th></tr></thead>
+    {% for a in top %}<tr><td><a href="{{ url_for('asset', aid=a.asset_id) }}">{{ a.asset_name }}</a></td><td>{{ a.open_findings }}</td><td>{{ a.critical_open|int }}</td><td><b>{{ a.risk_score }}</b></td></tr>{% endfor %}</table>
+    <p class="hint">Risk = sum of CVSS scores of the asset's open findings.</p>
+    <h2 class="gap">Most overdue <a class="more" href="{{ url_for('exposure', breached=1) }}">all →</a></h2>
+    <table class="mini"><thead><tr><th>Asset</th><th>CVE</th><th>Days</th><th>SLA</th><th>Patch</th></tr></thead>
+    {% for b in breaches %}<tr><td>{{ b.asset_name }}</td><td>{{ b.cve_id }}</td><td>{{ b.days_exposed }}</td><td>{{ b.sla_days }}</td><td>{{ b.patch_state|badge|safe }}</td></tr>{% endfor %}</table>
+  </section>
+</div>
+
+{% if can('analyst') %}<section class="panel">
+  <h2>Recent patch activity <a class="more" href="{{ url_for('audit') }}">audit log →</a></h2>
+  {% if audit %}<table class="mini"><thead><tr><th>When</th><th>Asset</th><th>Change</th></tr></thead>
+  {% for l in audit %}<tr><td>{{ l.changed_at }}</td><td>{{ l.asset|show }}</td><td>{{ (l.old_status or 'new')|badge|safe }} → {{ l.new_status|badge|safe }}</td></tr>{% endfor %}</table>
+  {% else %}<p class="hint">No changes yet. Mark a patch as applied on the Patch status page and it appears here (written by a database trigger).</p>{% endif %}
+</section>{% endif %}
+
+<section class="panel"><h2>Actively exploited &amp; still open <span class="hint">(MongoDB advisories × MySQL exposure)</span></h2>
+{% if exploited is none %}<p class="hint">MongoDB is not reachable - start it and run <code>python setup_mongo.py</code>.</p>
+{% else %}<table class="mini"><thead><tr><th>Asset</th><th>CVE</th><th>Severity</th><th>Days exposed</th><th>Patch</th></tr></thead>
+{% for e in exploited %}<tr><td>{{ e.asset_name }}</td><td><a href="{{ url_for('advisory', cve=e.cve_id) }}">{{ e.cve_id }}</a></td><td>{{ e.severity|badge|safe }}</td><td>{{ e.days_exposed }}</td><td>{{ e.patch_state|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">Nothing exploited-in-the-wild is open.</td></tr>{% endfor %}</table>{% endif %}</section>
+{% endblock %}

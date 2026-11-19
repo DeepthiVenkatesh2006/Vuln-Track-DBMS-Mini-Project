@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ a.name }}{% endblock %}
+{% block body %}
+<div class="head"><div><h1>{{ a.name }}</h1>
+  <p class="sub">{{ a.type }} · {{ a.ip_address|show }} · {{ a.owner_dept|show }} · {{ a.os_version|show }}</p></div>
+  <div><span class="kpi inline {{ 'crit' if risk > 15 }}"><b>{{ risk }}</b><span>risk score</span></span>
+  {% if can('admin') %}<a class="btn" href="{{ url_for('asset_edit', aid=a.asset_id) }}">Edit</a>{% endif %}</div></div>
+
+<section class="panel"><h2>Open findings <span class="hint">(from stored procedure sp_asset_report)</span></h2>
+{% if findings %}<div class="tablewrap"><table><thead><tr><th>CVE</th><th>Severity</th><th>CVSS</th><th>First detected</th><th>Days exposed</th><th>SLA (days)</th><th>SLA status</th><th>Patch</th></tr></thead>
+{% for r in findings %}<tr><td>{{ r.cve_id }}</td><td>{{ r.severity|badge|safe }}</td><td>{{ r.cvss_score }}</td><td>{{ r.first_detected }}</td><td>{{ r.days_exposed }}</td><td>{{ r.sla_days }}</td>
+<td>{{ ('<span class="pill crit">BREACHED</span>' if r.sla == 'BREACHED' else '<span class="pill ok">within SLA</span>')|safe }}</td><td>{{ r.patch_state|badge|safe }}</td></tr>{% endfor %}</table></div>
+{% else %}<p class="hint">No open findings. {% if not history %}This asset has never been scanned.{% endif %}</p>{% endif %}</section>
+
+<div class="cols">
+<section class="panel"><h2>Scan history</h2>
+<table class="mini"><thead><tr><th>Date</th><th>CVE</th><th>Scanner</th><th>Result</th></tr></thead>
+{% for h in history %}<tr><td>{{ h.scan_date }}</td><td>{{ h.cve_id }}</td><td>{{ h.scanner_used|show }}</td><td>{{ h.detection_status|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">No scans.</td></tr>{% endfor %}</table></section>
+<section class="panel"><h2>Patches on this asset</h2>
+<table class="mini"><thead><tr><th>CVE</th><th>Patch</th><th>Status</th><th>Applied</th></tr></thead>
+{% for p in patches %}<tr><td>{{ p.cve_id }}</td><td>{{ p.patch }}</td><td>{{ p.patch_status|badge|safe }}</td><td>{{ p.applied_date|show }}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">None tracked.</td></tr>{% endfor %}</table></section>
+</div>
+
+<section class="panel"><h2>Analyst notes <span class="hint">(MongoDB · asset_notes)</span></h2>
+{% if notes is none %}<p class="hint">MongoDB is not reachable, so notes are unavailable.</p>{% else %}
+{% if can('analyst') %}<form method="post" action="{{ url_for('note_add', aid=a.asset_id) }}" class="filters">{{ csrf_input() }}
+  <input name="text" placeholder="Add a note…" required style="max-width:none;flex:3"><input name="tags" placeholder="tags, comma separated" style="flex:1"><button class="btn primary">Add</button></form>{% endif %}
+{% for n in notes %}<div style="padding:8px 0;border-top:1px solid var(--line)"><b>{{ n.author }}</b> <span class="hint">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+ {% for t in n.tags %}<span class="pill low">{{ t }}</span> {% endfor %}
+ {% if can('admin') or n.author == current_user().username %}<form method="post" action="{{ url_for('note_delete', nid=n._id) }}" style="display:inline;float:right">{{ csrf_input() }}<input type="hidden" name="asset_id" value="{{ a.asset_id }}"><button class="btn small danger">Delete</button></form>{% endif %}
+ <div>{{ n.text }}</div></div>
+{% else %}<p class="hint">No notes yet.</p>{% endfor %}{% endif %}</section>
+{% endblock %}

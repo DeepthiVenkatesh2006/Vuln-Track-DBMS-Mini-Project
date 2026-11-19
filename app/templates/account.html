@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}My account{% endblock %}
+{% block body %}
+<div class="head"><div><h1>My account</h1><p class="sub">Signed in as <b>{{ current_user().username }}</b> · role <span class="pill muted">{{ current_user().role }}</span></p></div></div>
+<form method="post" class="panel grid">{{ csrf_input() }}
+  <label class="fld">Current password<input type="password" name="current" autocomplete="current-password" required></label>
+  <label class="fld">New password (min 8 characters)<input type="password" name="new" autocomplete="new-password" required minlength="8"></label>
+  <label class="fld">Repeat new password<input type="password" name="again" autocomplete="new-password" required minlength="8"></label>
+  <div class="actions"><button class="btn primary">Change password</button></div>
+</form>
+<section class="panel"><h2>What your role can do</h2>
+<table class="mini"><thead><tr><th>Action</th><th>viewer</th><th>analyst</th><th>admin</th></tr></thead>
+{% for a, v, an, ad in [
+ ('View dashboard, exposure, assets, vulnerabilities, patches, scans, advisories, query lab', 1, 1, 1),
+ ('Record scans, set / mark patch status', 0, 1, 1),
+ ('Edit advisories, add notes (MongoDB), view audit log', 0, 1, 1),
+ ('Add / edit / delete assets, vulnerabilities, patches, scan rows', 0, 0, 1),
+ ('Delete any note, manage users', 0, 0, 1)] %}
+<tr><td>{{ a }}</td><td>{{ '✓' if v else '—' }}</td><td>{{ '✓' if an else '—' }}</td><td>{{ '✓' if ad else '—' }}</td></tr>{% endfor %}</table></section>
+{% endblock %}

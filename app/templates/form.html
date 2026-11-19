@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import field %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+<div class="head"><h1>{{ title }}</h1></div>
+{% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+<form method="post" class="panel grid">{{ csrf_input() }}
+  {% for x in fields %}{{ field(x) }}{% endfor %}
+  <div class="actions">{% if fields %}<button class="btn primary">Save changes</button>{% endif %}<a class="btn ghost" href="{{ back }}">Back</a></div>
+</form>
+{% endblock %}

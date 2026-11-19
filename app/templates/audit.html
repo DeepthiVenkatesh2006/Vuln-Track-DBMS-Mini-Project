@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Audit log{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Audit log</h1><p class="sub">Every patch-status change, written automatically by the database triggers <code>trg_ps_ai</code> and <code>trg_ps_au</code> into PATCH_STATUS_LOG.</p></div><span class="count">{{ rows|length }} entries</span></div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>When</th><th>Asset</th><th>Patch id</th><th>Change</th></tr></thead>
+{% for l in rows %}<tr><td>{{ l.log_id }}</td><td>{{ l.changed_at }}</td><td>{{ l.asset }}</td><td>{{ l.patch_id }}</td><td>{{ (l.old_status or 'new')|badge|safe }} → {{ l.new_status|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">No changes recorded yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

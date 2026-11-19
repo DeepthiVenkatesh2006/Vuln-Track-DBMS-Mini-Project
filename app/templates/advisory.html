@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ v.cve_id }}{% endblock %}
+{% block body %}
+<div class="head"><div><h1>{{ v.cve_id }}</h1><p class="sub">{{ d.title }}</p></div>
+<div>{{ v.severity|badge|safe }} <span class="pill muted">CVSS {{ v.cvss_score }}</span> <a class="btn" href="{{ url_for('advisories') }}">All advisories</a></div></div>
+
+<div class="cols">
+<section class="panel"><h2>{{ 'Edit advisory' if can('analyst') else 'Advisory' }} <span class="hint">(MongoDB · advisories)</span></h2>
+<form method="post" class="grid" style="grid-template-columns:1fr"><fieldset {{ "disabled" if not can("analyst") }} style="border:0;padding:0;margin:0;display:contents">{{ csrf_input() }}
+  <label class="fld">Title<input name="title" value="{{ d.title or '' }}"></label>
+  <label class="fld">CWE<input name="cwe" value="{{ d.cwe or '' }}" placeholder="CWE-502"></label>
+  <label class="fld">Attack vector<select name="attack_vector">{% for o in ['', 'Network', 'Adjacent', 'Local', 'Physical'] %}<option {{ 'selected' if (d.attack_vector or '') == o }}>{{ o }}</option>{% endfor %}</select></label>
+  <label class="fld" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" name="exploited_in_wild" style="width:auto" {{ 'checked' if d.exploited_in_wild }}> Exploited in the wild</label>
+  <label class="fld">Summary<textarea name="summary" rows="2">{{ d.summary or v.description or '' }}</textarea></label>
+  <label class="fld">Mitigations (one per line)<textarea name="mitigations" rows="4">{{ d.mitigations|join('\n') }}</textarea></label>
+  <label class="fld">References (one per line)<textarea name="references" rows="3">{{ d.references|join('\n') }}</textarea></label>
+  <label class="fld">Tags (comma separated)<input name="tags" value="{{ d.tags|join(', ') }}"></label>
+  {% if can("analyst") %}<div class="actions"><button class="btn primary">Save to MongoDB</button></div>{% else %}<p class="hint">Read-only: analyst or admin role needed to edit.</p>{% endif %}
+</fieldset></form></section>
+
+<section class="panel"><h2>Where it is still open <span class="hint">(MySQL view v_open_exposure)</span></h2>
+<table class="mini"><thead><tr><th>Asset</th><th>Dept</th><th>Days</th><th>SLA</th><th>Patch</th></tr></thead>
+{% for a in affected %}<tr><td>{{ a.asset_name }}</td><td>{{ a.owner_dept|show }}</td><td>{{ a.days_exposed }}</td>
+<td>{{ ('<span class="pill crit">BREACHED</span>' if a.sla_breached else '<span class="pill ok">ok</span>')|safe }}</td><td>{{ a.patch_state|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">Not open on any asset.</td></tr>{% endfor %}</table>
+<h2 class="gap">Raw scanner reports <span class="hint">(MongoDB · scan_reports)</span></h2>
+<table class="mini"><thead><tr><th>Date</th><th>Asset</th><th>Scanner</th><th>Result</th></tr></thead>
+{% for r in reports %}<tr><td>{{ r.scan_date.strftime('%Y-%m-%d') }}</td><td>{{ r.asset }}</td><td>{{ r.scanner }}</td><td>{{ r.status|badge|safe }}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">None.</td></tr>{% endfor %}</table></section>
+</div>
+<section class="panel"><h2>Stored document <span class="hint">(JSON exactly as MongoDB holds it)</span></h2><pre style="margin:0;overflow-x:auto">{{ raw }}</pre></section>
+{% endblock %}
